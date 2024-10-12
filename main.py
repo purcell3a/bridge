@@ -1,7 +1,12 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 import sqlite3
 import requests
+import os
+from dotenv import load_dotenv
 from llama_handler import create_index, query_index
+
+# Load environment variables from .env file
+load_dotenv()
 
 app = FastAPI()
 
@@ -12,17 +17,36 @@ def get_db_connection():
 
 # API call to Kindo for generating a doctor summary
 def call_kindo_api(combined_input):
-    url = "https://kindo-api-endpoint/chat/completions"
+    url = "https://llm.kindo.ai/v1/chat/completions"
+    
+    # Get the API key from the environment variables
+    api_key = os.getenv("KINDO_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="Kindo API key not found in environment variables")
+    
     headers = {
-        "Authorization": "Bearer YOUR_KINDO_API_KEY",
+        "api-key": api_key,  # Use the API key from environment
         "Content-Type": "application/json"
     }
     payload = {
-        "prompt": combined_input,
+        "model": "YOUR_MODEL_NAME",  # Replace with actual model name from Kindo
+        "messages": [{"role": "user", "content": combined_input}],
         "max_tokens": 500
     }
     response = requests.post(url, json=payload, headers=headers)
-    return response.json()
+    
+    if response.status_code == 200:
+        return response.json()
+    elif response.status_code == 400:
+        raise HTTPException(status_code=400, detail="Bad Request: Invalid input")
+    elif response.status_code == 401:
+        raise HTTPException(status_code=401, detail="Unauthorized: Invalid API key")
+    elif response.status_code == 403:
+        raise HTTPException(status_code=403, detail="Forbidden: Access denied")
+    elif response.status_code == 429:
+        raise HTTPException(status_code=429, detail="Too Many Requests: Rate limit exceeded")
+    else:
+        raise HTTPException(status_code=500, detail="Kindo API server error")
 
 # API route to log symptoms
 @app.post("/log-symptom")
