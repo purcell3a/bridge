@@ -1,0 +1,23 @@
+import sqlite3
+
+# Initialize SQLite database and create tables
+def init_db():
+    conn = sqlite3.connect('database.db')
+    cursor = conn.cursor()
+
+    # Create table for storing user symptoms
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS symptoms (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
+        symptom TEXT NOT NULL,
+        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    ''')
+    
+    conn.commit()
+    conn.close()
+
+# Run this to initialize the database schema
+if __name__ == "__main__":
+    init_db()
