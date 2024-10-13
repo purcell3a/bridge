@@ -1,6 +1,6 @@
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, APIRouter
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 
 from database.database import get_db_connection
@@ -12,8 +12,11 @@ SECRET_KEY = "your_secret_key"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 120
 
+router = APIRouter()
+
 # User login route
-def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
+@router.post("/login", summary="Login", description="Login and get a JWT token")
+def login(form_data: OAuth2PasswordRequestForm = Depends()):
     conn = get_db_connection()
     cursor = conn.cursor()
 
@@ -24,7 +27,9 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
     if not user or not verify_password(form_data.password, user[2]):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect email or password")
 
-    access_token = create_access_token(data={"sub": user[1]}, expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+    # Create JWT token with expiration
+    access_token = create_access_token(data={"sub": user[1]}, expires_delta=timedelta(minutes=120))
+    
     return {"access_token": access_token, "token_type": "bearer"}
 
 # Helper function to get the current user

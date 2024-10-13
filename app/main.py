@@ -1,13 +1,23 @@
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 
-from app.auth import login_for_access_token, get_current_user
+from app.auth import login, get_current_user
 from app.users import create_user
 from app.symptoms import log_symptom, generate_summary
 from database.database import get_db_connection
 
+# Import routers from your modules
+from app.auth import router as auth_router
+from app.symptoms import router as symptoms_router
+from app.users import router as user_router
 
 app = FastAPI()
+
+# Include routers
+app.include_router(auth_router, prefix="/auth")
+app.include_router(symptoms_router, prefix="/symptoms")
+app.include_router(user_router, prefix="/users")
+
 
 # Landing page route (list all endpoints)
 @app.get("/", response_class=HTMLResponse)
