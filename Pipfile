@@ -11,6 +11,7 @@ uvicorn = "*"
 python-dotenv = "*"
 passlib = "*"
 python-jose = {extras = ["cryptography"], version = "*"}
+python-multipart = "*"
 
 [dev-packages]
 
