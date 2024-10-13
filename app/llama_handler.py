@@ -65,7 +65,7 @@ def call_kindo_api(user_input: str):
         "content-type": "application/json"
     }
     payload = {
-        "model": KINDO_MODEL_NAME,  # Specify the model name
+        "model": "GPT-4o",  # Specify the model name
         "messages": [
             {"role": "user", "content": user_input}  # Send the symptom as user input
         ],
