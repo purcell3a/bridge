@@ -1,11 +1,18 @@
+import os
 import sqlite3
+
+# Define the database path in the .data directory for persistence on Heroku
+DATABASE_URL = os.path.join(os.getcwd(), ".data", "database.db")
 
 # Function to initialize the SQLite database
 def init_db():
-    conn = sqlite3.connect('database.db')
+    # Ensure the .data directory exists
+    os.makedirs(os.path.dirname(DATABASE_URL), exist_ok=True)
+    
+    conn = sqlite3.connect(DATABASE_URL)
     cursor = conn.cursor()
 
-    # Drop existing tables if they exist
+    # Drop existing tables if they exist (only for development, can be removed for production)
     cursor.execute('DROP TABLE IF EXISTS symptoms')
     cursor.execute('DROP TABLE IF EXISTS users')
 
@@ -19,8 +26,7 @@ def init_db():
     );
     ''')
 
-
-    # Create table for storing user details
+    # Create Users Table
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
