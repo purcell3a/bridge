@@ -9,6 +9,8 @@ llama-index = "*"
 openai = "*"
 uvicorn = "*"
 python-dotenv = "*"
+passlib = "*"
+python-jose = {extras = ["cryptography"], version = "*"}
 
 [dev-packages]
 
