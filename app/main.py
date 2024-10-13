@@ -1,3 +1,9 @@
+import sys
+import os
+
+# Add the project root directory to Python's path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -16,16 +22,15 @@ app = FastAPI()
 origins = [
 "https://bridge-fe-8aeb1e1bce30.herokuapp.com"
 "http://localhost:3000"
-"https://localhost:3000"
+# "https://localhost:3000"
 ]
 
-app.add_middleware(CORSMiddleware,
-allow_origins=origins,
-# allow_origins=["*"],
-allow_credentials=True,
-allow_methods=["POST","GET"],
-allow_headers=["*"],
-# expose_headers=["Access-Control-Allow-Origin"]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allows requests from any origin
+    allow_credentials=True,  # Allow cookies and credentials
+    allow_methods=["*"],  # Allows all HTTP methods (GET, POST, etc.)
+    allow_headers=["*"],  # Allows all headers
 )
 
 from app.auth import router as auth_router
