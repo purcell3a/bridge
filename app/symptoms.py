@@ -22,7 +22,7 @@ def log_symptom(symptom: str, current_user: dict = Depends(get_current_user)):
 
 # Doctor summary generation route (protected)
 @router.post("/generate-summary", summary="Generate Summary", description="Generates a doctor summary based on symptoms")
-def generate_summary(symptom_input: SymptomInput, current_user: dict = Depends(get_current_user)):
+def generate_summary(symptom_input: str, current_user: dict = Depends(get_current_user)):
     """
     Generates a doctor summary using LlamaIndex and Kindo's AI based on the user's input and historical data.
     """
