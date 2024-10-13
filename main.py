@@ -53,14 +53,14 @@ def read_root():
     html_content = """
     <html>
         <head>
-            <title>Health Logging App - API Documentation</title>
+            <title>Bridge</title>
         </head>
         <body>
             <h1>Health Logging App API</h1>
             <p>Welcome to the Health Logging API backend. Below is a list of available endpoints:</p>
             <ul>
                 <li><b>POST</b> /create-user - Create a new user</li>
-                <li><b>POST</b> /token - Login and get a JWT token</li>
+                <li><b>POST</b> /login - Login and get a JWT token</li>
                 <li><b>GET</b> /users/me - Get details of the logged-in user</li>
                 <li><b>POST</b> /log-symptom - Log a symptom for the logged-in user</li>
                 <li><b>GET</b> /generate-summary - Generate a doctor summary for the logged-in user</li>
@@ -90,22 +90,41 @@ def create_user(name: str, password: str, email: str):
     return {"status": "User created successfully", "name": name, "email": email}
 
 # User login route
-@app.post("/token")
+@app.post("/login", summary="User Login", response_description="Returns an access token for the user")
 def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
+    """
+    This endpoint allows users to log in using their email and password. 
+
+    **Input**:
+    - `username`: The email of the user (OAuth2 expects "username", but we use it as the email here).
+    - `password`: The user's password.
+
+    **Output**:
+    - Returns a JWT access token and the token type ("bearer") if the login is successful.
+    - The access token is valid for 120 minutes (or the specified expiration time).
+
+    **Error**:
+    - Returns a 401 Unauthorized error if the credentials are incorrect.
+    """
     conn = get_db_connection()
     cursor = conn.cursor()
 
+    # Find user by email (OAuth2 uses 'username' field for login, but it's the email in our case)
     cursor.execute("SELECT id, email, password FROM users WHERE email = ?", (form_data.username,))
     user = cursor.fetchone()
     conn.close()
 
+    # If user does not exist or password does not match, return an error
     if user is None or not verify_password(form_data.password, user[2]):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect email or password")
 
+    # Create JWT token valid for ACCESS_TOKEN_EXPIRE_MINUTES (default is 120 minutes)
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(data={"sub": user[1]}, expires_delta=access_token_expires)
 
+    # Return the access token and token type as JSON response
     return {"access_token": access_token, "token_type": "bearer"}
+
 
 # Helper function to get current user from token
 def get_current_user(token: str = Depends(oauth2_scheme)):

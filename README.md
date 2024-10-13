@@ -1,4 +1,4 @@
-# Bridge - Health Logging App
+# Bridge
 
 This is a health logging app built with FastAPI that allows users to log symptoms, view historical data, and generate summaries for healthcare professionals using the Kindo API. The project utilizes SQLite for local data storage and LlamaIndex for symptom analysis.
 
