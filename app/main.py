@@ -16,7 +16,7 @@ app = FastAPI()
 origins = [
 "https://bridge-fe-8aeb1e1bce30.herokuapp.com"
 "http://localhost:3000"
-# "https://localhost:3000"
+"https://localhost:3000"
 ]
 
 app.add_middleware(CORSMiddleware,
