@@ -22,13 +22,22 @@ def log_symptom(symptom: str, current_user: dict = Depends(get_current_user)):
 
 # Doctor summary generation route (protected)
 @router.post("/generate-summary", summary="Generate Summary", description="Generates a doctor summary based on symptoms")
-def generate_summary(symptom_input: str, current_user: dict = Depends(get_current_user)):
+def generate_summary(symptom_input: SymptomInput, current_user: dict = Depends(get_current_user)):
+    """
+    Generates a doctor summary using LlamaIndex and Kindo's AI based on the user's input and historical data.
+    """
     user_id = current_user["id"]
-    historical_data = query_index(user_id)
-
-    combined_input = f"{symptom_input}\nHistorical data: {historical_data}"
-
-    # Call the Kindo API to generate the summary
+    
+    # Retrieve user-provided symptoms from the API input
+    current_input = symptom_input.current_symptoms  # Get the user-provided symptoms
+    
+    # Query historical data based on the current input
+    historical_data = query_index(user_id, current_input)  # Dynamic query based on user input
+    
+    # Combine the current input with historical data for the Kindo API
+    combined_input = f"{current_input}\nHistorical data: {historical_data}"
+    
+    # Call Kindo API to generate the summary
     kindo_response = call_kindo_api(combined_input)
     
     return {"summary": kindo_response}
