@@ -1,4 +1,3 @@
-
 from llama_index.core import SimpleDirectoryReader, VectorStoreIndex
 import sqlite3
 
@@ -43,18 +42,3 @@ def call_kindo_api(combined_input):
     response = requests.post(url, json=payload, headers=headers)
     return response.json()
 
-# Route to generate a doctor summary
-@app.get("/generate-summary")
-def generate_summary(user_id: int):
-    # Query the LlamaIndex to get historical symptoms
-    historical_data = query_index(user_id)
-
-    # Combine historical data with the current symptom input (hypothetical)
-    current_input = "User reports frequent headaches and nausea."
-    combined_input = f"{current_input}\nHistorical data: {historical_data}"
-
-    # Call Kindo's API with the combined input
-    kindo_response = call_kindo_api(combined_input)
-    
-    # Return the summary from Kindo's API response
-    return {"summary": kindo_response}

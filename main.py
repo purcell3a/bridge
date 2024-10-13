@@ -1,16 +1,17 @@
-from fastapi import FastAPI, HTTPException
+import os
 import sqlite3
+from fastapi import FastAPI, HTTPException
 from llama_handler import create_index, query_index
 from dotenv import load_dotenv
-import os
 import requests
 
-# Load the .env file for API keys
+# Load environment variables
 load_dotenv()
 
-# Fetch the API key for Kindo API
+# Fetch API key for Kindo API
 KINDO_API_KEY = os.getenv('KINDO_API_KEY')
 
+# Create FastAPI app instance
 app = FastAPI()
 
 # SQLite connection function
@@ -53,7 +54,7 @@ def get_user(user_id: int):
     # Return the user data
     return {"id": user[0], "name": user[1], "email": user[2]}
 
-# Existing symptom logging route
+# Symptom logging route
 @app.post("/log-symptom")
 def log_symptom(symptom: str, user_id: int):
     conn = get_db_connection()
@@ -67,7 +68,7 @@ def log_symptom(symptom: str, user_id: int):
     
     return {"status": "Symptom logged successfully"}
 
-# Existing doctor summary generation route
+# Doctor summary generation route
 @app.get("/generate-summary")
 def generate_summary(user_id: int):
     # Query LlamaIndex for relevant historical symptoms
