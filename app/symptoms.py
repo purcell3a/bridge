@@ -6,8 +6,11 @@ from database.database import get_db_connection
 router = APIRouter()
 
 # Symptom logging route (protected)
-@router.post("/log-symptom", summary="Log Symptom", description="Logs a symptom for the current user")
+@router.post("/log-symptom", summary="Log Symptom", description="Logs a symptom and generates a Kindo-based response")
 def log_symptom(symptom: str, current_user: dict = Depends(get_current_user)):
+    """
+    Logs the user's symptom and generates a dynamic response from Kindo API.
+    """
     # Log the symptom to the database
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -16,12 +19,12 @@ def log_symptom(symptom: str, current_user: dict = Depends(get_current_user)):
     conn.close()
 
     # Optionally update LlamaIndex in real-time
-    create_index(1)  # Assuming static user_id 1 for now
+    create_index(1)  # Assuming static user_id for now
 
-    # Call Kindo API to generate a follow-up response based on the symptom
+    # Call Kindo API to generate a dynamic follow-up response based on the symptom
     kindo_response = call_kindo_api(symptom)
 
-    # Return success message, logged symptom, and Kindo response
+    # Return success message, logged symptom, and Kindo's dynamic follow-up response
     return {
         "status": "Symptom logged successfully",
         "logged_symptom": symptom,

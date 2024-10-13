@@ -52,20 +52,29 @@ def query_index(user_id, current_symptoms: str):
 
 
 # Kindo API integration
-def call_kindo_api(combined_input):
+def call_kindo_api(user_input: str):
+    """
+    Call Kindo API with the provided user input and return the response.
+    """
     if not KINDO_API_KEY:
         raise ValueError("KINDO_API_KEY is not set in the environment variables")
     
-    url = "https://kindo-api-endpoint/chat/completions"
+    url = "https://llm.kindo.ai/v1/chat/completions"  # Kindo API endpoint
     headers = {
-        "Authorization": f"Bearer {KINDO_API_KEY}",
-        "Content-Type": "application/json"
+        "api-key": KINDO_API_KEY,
+        "content-type": "application/json"
     }
     payload = {
-        "prompt": combined_input,
-        "max_tokens": 500
+        "model": KINDO_MODEL_NAME,  # Specify the model name
+        "messages": [
+            {"role": "user", "content": user_input}  # Send the symptom as user input
+        ],
+        "max_tokens": 150  # Limit the response length (you can adjust this)
     }
     
     response = requests.post(url, json=payload, headers=headers)
-    response.raise_for_status()  # Raises HTTPError if the response is an error
-    return response.json()
+    response.raise_for_status()  # Raises an error for any non-2xx response
+    
+    # Parse the response and extract the message
+    kindo_response = response.json()
+    return kindo_response["choices"][0]["message"]["content"]  # Adjust based on response format
