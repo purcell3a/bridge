@@ -1,23 +1,40 @@
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.auth import login, get_current_user
 from app.users import create_user
 from app.symptoms import log_symptom, generate_summary
 from database.database import get_db_connection
+from app.utils import call_kindo_api
 
 # Import routers from your modules
-from app.auth import router as auth_router
-from app.symptoms import router as symptoms_router
-from app.users import router as user_router
 
 app = FastAPI()
 
 # Include routers
+origins = [
+"https://bridge-fe-8aeb1e1bce30.herokuapp.com"
+"http://localhost:3000"
+# "https://localhost:3000"
+]
+
+app.add_middleware(CORSMiddleware,
+allow_origins=origins,
+# allow_origins=["*"],
+allow_credentials=True,
+allow_methods=["POST","GET"],
+allow_headers=["*"],
+# expose_headers=["Access-Control-Allow-Origin"]
+)
+
+from app.auth import router as auth_router
+from app.symptoms import router as symptoms_router
+from app.users import router as user_router
 app.include_router(auth_router, prefix="/auth")
 app.include_router(symptoms_router, prefix="/symptoms")
 app.include_router(user_router, prefix="/users")
-
+# app.include_router(utils_router,prefox="/utils")
 
 # Landing page route (list all endpoints)
 @app.get("/", response_class=HTMLResponse)
