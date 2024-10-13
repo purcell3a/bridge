@@ -1,33 +1,85 @@
 import os
 import sqlite3
-from fastapi import FastAPI, HTTPException
-from llama_handler import create_index, query_index
+from fastapi import FastAPI, HTTPException, Depends, status
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from passlib.context import CryptContext
+from jose import JWTError, jwt
+from datetime import datetime, timedelta
 from dotenv import load_dotenv
 import requests
 
 # Load environment variables
 load_dotenv()
 
-# Fetch API key for Kindo API
-KINDO_API_KEY = os.getenv('KINDO_API_KEY')
+# JWT settings
+SECRET_KEY = os.getenv("SECRET_KEY", "mysecretkey")
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 120
 
-# Create FastAPI app instance
+# JWT token utility functions
+def create_access_token(data: dict, expires_delta: timedelta = None):
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(minutes=15)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+# Password hashing utility
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def verify_password(plain_password, hashed_password):
+    return pwd_context.verify(plain_password, hashed_password)
+
+def get_password_hash(password):
+    return pwd_context.hash(password)
+
+# FastAPI app instance
 app = FastAPI()
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 # SQLite connection function
 def get_db_connection():
     conn = sqlite3.connect('database.db')
     return conn
 
-# Function to create a user
+# Landing page route (list all endpoints)
+@app.get("/", response_class=HTMLResponse)
+def read_root():
+    html_content = """
+    <html>
+        <head>
+            <title>Health Logging App - API Documentation</title>
+        </head>
+        <body>
+            <h1>Health Logging App API</h1>
+            <p>Welcome to the Health Logging API backend. Below is a list of available endpoints:</p>
+            <ul>
+                <li><b>POST</b> /create-user - Create a new user</li>
+                <li><b>POST</b> /token - Login and get a JWT token</li>
+                <li><b>GET</b> /users/me - Get details of the logged-in user</li>
+                <li><b>POST</b> /log-symptom - Log a symptom for the logged-in user</li>
+                <li><b>GET</b> /generate-summary - Generate a doctor summary for the logged-in user</li>
+            </ul>
+            <p>For interactive documentation, visit <a href="/docs">/docs</a>.</p>
+        </body>
+    </html>
+    """
+    return HTMLResponse(content=html_content)
+
+# Create a user route (with password hashing)
 @app.post("/create-user")
-def create_user(name: str, email: str):
+def create_user(name: str, password: str, email: str):
     conn = get_db_connection()
     cursor = conn.cursor()
 
+    hashed_password = get_password_hash(password)
+
     try:
-        # Insert user into the users table
-        cursor.execute("INSERT INTO users (name, email) VALUES (?, ?)", (name, email))
+        cursor.execute("INSERT INTO users (name, password, email) VALUES (?, ?, ?)", (name, hashed_password, email))
         conn.commit()
     except sqlite3.IntegrityError:
         raise HTTPException(status_code=400, detail="Email already exists")
@@ -36,27 +88,54 @@ def create_user(name: str, email: str):
 
     return {"status": "User created successfully", "name": name, "email": email}
 
-# Function to get a user by ID
-@app.get("/get-user/{user_id}")
-def get_user(user_id: int):
+# User login route
+@app.post("/token")
+def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    # Query the database for the user
-    cursor.execute("SELECT * FROM users WHERE id = ?", (user_id,))
+    cursor.execute("SELECT id, email, password FROM users WHERE email = ?", (form_data.username,))
     user = cursor.fetchone()
     conn.close()
 
-    # If user does not exist, raise a 404 error
+    if user is None or not verify_password(form_data.password, user[2]):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect email or password")
+
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(data={"sub": user[1]}, expires_delta=access_token_expires)
+
+    return {"access_token": access_token, "token_type": "bearer"}
+
+# Helper function to get current user from token
+def get_current_user(token: str = Depends(oauth2_scheme)):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_email = payload.get("sub")
+        if user_email is None:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate credentials")
+    except JWTError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate credentials")
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, name, email FROM users WHERE email = ?", (user_email,))
+    user = cursor.fetchone()
+    conn.close()
+
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
 
-    # Return the user data
     return {"id": user[0], "name": user[1], "email": user[2]}
 
-# Symptom logging route
+# Protected route for getting user information
+@app.get("/users/me")
+def read_users_me(current_user: dict = Depends(get_current_user)):
+    return current_user
+
+# Symptom logging route (protected)
 @app.post("/log-symptom")
-def log_symptom(symptom: str, user_id: int):
+def log_symptom(symptom: str, current_user: dict = Depends(get_current_user)):
+    user_id = current_user["id"]
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("INSERT INTO symptoms (user_id, symptom, timestamp) VALUES (?, ?, datetime('now'))", (user_id, symptom))
@@ -68,9 +147,10 @@ def log_symptom(symptom: str, user_id: int):
     
     return {"status": "Symptom logged successfully"}
 
-# Doctor summary generation route
+# Doctor summary generation route (protected)
 @app.get("/generate-summary")
-def generate_summary(user_id: int):
+def generate_summary(current_user: dict = Depends(get_current_user)):
+    user_id = current_user["id"]
     # Query LlamaIndex for relevant historical symptoms
     historical_data = query_index(user_id)
     
