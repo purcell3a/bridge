@@ -1,4 +1,5 @@
-from llama_index import SimpleDirectoryReader, GPTSimpleVectorIndex
+
+from llama_index.core import SimpleDirectoryReader, VectorStoreIndex
 import sqlite3
 
 # Function to retrieve symptom data from SQLite
@@ -14,14 +15,14 @@ def retrieve_symptom_data(user_id):
 def create_index():
     data = retrieve_symptom_data(user_id=1)  # You can pass dynamic user_id
     documents = SimpleDirectoryReader(input_data=data).load_data()
-    index = GPTSimpleVectorIndex(documents)
+    index = VectorStoreIndex(documents)
     # Save index to disk for querying later
     index.save_to_disk("symptoms_index.json")
 
 # Query the index to retrieve relevant user symptoms
 def query_index(user_id):
     # Load the pre-built index
-    index = GPTSimpleVectorIndex.load_from_disk("symptoms_index.json")
+    index = VectorStoreIndex.load_from_disk("symptoms_index.json")
     # Query LlamaIndex with the current symptom or condition
     query = "headache, nausea"  # Can dynamically change based on input
     result = index.query(query)
