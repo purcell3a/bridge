@@ -8,7 +8,7 @@ router = APIRouter()
 # Symptom logging route (protected)
 @router.post("/log-symptom", summary="Log Symptom", description="Logs a symptom for the current user")
 def log_symptom(symptom: str, current_user: dict = Depends(get_current_user)):
-    # user_id = current_user["id"]
+    # Log the symptom to the database
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("INSERT INTO symptoms (user_id, symptom, timestamp) VALUES (?, ?, datetime('now'))", (1, symptom))
@@ -16,12 +16,16 @@ def log_symptom(symptom: str, current_user: dict = Depends(get_current_user)):
     conn.close()
 
     # Optionally update LlamaIndex in real-time
-    create_index(user_id)
-    
-    # Return success message with the logged symptom
+    create_index(1)  # Assuming static user_id 1 for now
+
+    # Call Kindo API to generate a follow-up response based on the symptom
+    kindo_response = call_kindo_api(symptom)
+
+    # Return success message, logged symptom, and Kindo response
     return {
         "status": "Symptom logged successfully",
-        "logged_symptom": symptom  # Returning the logged symptom
+        "logged_symptom": symptom,
+        "followup_response": kindo_response  # Dynamic response from Kindo AI
     }
 
 # Doctor summary generation route (protected)
