@@ -20,13 +20,14 @@ app = FastAPI()
 
 # Include routers
 origins = [
-"https://bridge-fe-8aeb1e1bce30.herokuapp.com"
+"https://bridge-fe-8aeb1e1bce30.herokuapp.com/"
 "http://localhost:3000"
 # "https://localhost:3000"
 ]
 
 app.add_middleware(
     CORSMiddleware,
+    allow_origins=origins,  # Change to ["*"] to allow all origins
     allow_origins=["*"],  # Allows requests from any origin
     allow_credentials=True,  # Allow cookies and credentials
     allow_methods=["*"],  # Allows all HTTP methods (GET, POST, etc.)
